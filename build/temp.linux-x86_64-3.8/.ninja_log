@@ -1,0 +1,15 @@
+# ninja log v5
+0	187	1714019967450256560	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/marchingcubes.o	975724c7fbb6f5d3
+0	836	1714019968098278542	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/pywrapper.o	51ead16195b38fac
+0	1020	1714019968282284779	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/mcubes.o	d863a7ac5b3faaaa
+1	3431	1714019971790403508	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmesh/triangle_hash.o	9dfa184a48f6a7fb
+0	4271	1714019976142550228	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmise/mise.o	da7891d79a2a7bf4
+0	4414	1714019980642701271	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libsimplify/simplify_mesh.o	1ad6a04032866c9c
+0	2888	1714019983690803201	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libvoxelize/voxelize.o	daf869199bd1588b
+1	181	1714724576700348067	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/marchingcubes.o	46562f4c75b07ee7
+0	802	1714724577324201519	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/pywrapper.o	ce8a1cdae840d915
+0	951	1714724577472166828	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmcubes/mcubes.o	58272127273044cf
+0	3352	1714724580911366046	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmesh/triangle_hash.o	7a0fe6b3c5548e62
+0	3916	1714724584926445481	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libmise/mise.o	edbaad65784ca45c
+1	4377	1714724589393439113	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libsimplify/simplify_mesh.o	cd3612993f87cb79
+0	2908	1714724592456759563	/home/eric/Grasp_detection_GIGA/build/temp.linux-x86_64-3.8/src/vgn/ConvONets/utils/libvoxelize/voxelize.o	660badd8e2942718
