@@ -1,3 +1,4 @@
+# Tsdf_Graspdectction
 numpy注意要能使用np.int只能使用1.20以下或是1.23.5 (已在requirement.txt指定版本)  目前使用1.22.4	
 而 scikit-image==0.19.0 (已在requirement.txt指定版本)
 pip install opencv-contrib-python==4.6.0.66
@@ -99,4 +100,4 @@ python sim_grasp_multiple.py --num-view 1 --object-set sundries --scene pile --n
 
     
 python sim_grasp_multiple.py --num-view 1 --object-set M24_60mm_bolt --scene pile  --num-rounds 100 --sideview --add-noise dex --force --best --model data/models/best_TT_boltM24_giga_0508_giga_val_acc=0.9458.pt --type giga --result-path /path/to/result --sim-gui
-# Tsdf_Graspdectction
+
