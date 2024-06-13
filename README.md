@@ -39,6 +39,7 @@ pip install numpy==1.22.4
 pip install pytorch-ignite==0.5.0.post2
 pip install pykdtree
 pip install rospkg
+pip install networkx==2.2
 #目前open3d要是0.12.0!!!!!!!!!不然可能有未知錯誤像是產生core dump 或是 segmentation fault 這東西非常容易版本問題跟其他套件產成錯誤根據gdb追蹤可能是底層cuda調用c++那邊容易出問題
 只靠requirements.txt也許torch少了些其他東西下方為安裝指定torch版本(當下是2.2.2)
 參考來源:https://pytorch.org/get-started/locally/
@@ -64,6 +65,7 @@ pip install torch-scatter -f https://data.pyg.org/whl/torch-2.2.2+cu118.html
 
 pip install -e . //安裝vgn
 
+cd Grasp_detection_GIGA
 python scripts/convonet_setup.py build_ext --inplace 編譯src裡的vgn資料夾c++給python,編譯完後會自動把build/lib.linux-x86_64-3.8/src/內的資料夾複製進scripts中的資料夾中並覆蓋
 因為這步驟在windows底下會出錯只能在linux中使用推測因為windows會調用Microsoft Visual Studio裡的編譯器來做會導致出錯
 

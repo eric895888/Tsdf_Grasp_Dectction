@@ -35,7 +35,7 @@ def rotation_matrix_to_quaternion(R):
     return np.array([w, x, y, z])
 
 def Img_ArUco_detect(img,Intrinsic,distortion):
-    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_250)
+    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
     parameters =  cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(cv2.aruco_dict , parameters)
     corners, ids, rejected_img_points = detector.detectMarkers(img)
@@ -45,7 +45,7 @@ def Img_ArUco_detect(img,Intrinsic,distortion):
 #    如果找不打id
     if ids is not None:
         #邊長單位兩公分,但我以m為基準所以是0.02 m
-        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.02, Intrinsic, distortion)
+        rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.035, Intrinsic, distortion)
         # 估计每个标记的姿态并返回值rvet和tvec ---不同
         # from camera coeficcients
         (rvec-tvec).any() # get rid of that nasty numpy value array error
@@ -126,7 +126,7 @@ def Camstream_ArUco_detect():
 
 
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_250)
+        cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
         parameters =  cv2.aruco.DetectorParameters()
         # dst1 = cv2.undistort(frame, mtx, dist, None, newcameramtx)
         '''
@@ -143,7 +143,7 @@ def Camstream_ArUco_detect():
     #    如果找不打id
         if ids is not None:
             #邊長單位兩公分,但我以m為基準所以是0.02 m
-            rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.02, mtx, dist)
+            rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.035, mtx, dist)
             # 估计每个标记的姿态并返回值rvet和tvec ---不同
             # from camera coeficcients
             (rvec-tvec).any() # get rid of that nasty numpy value array error
