@@ -30,11 +30,12 @@ from pytransform3d.transform_manager import TransformManager
 from vgn.detection_implicit import VGNImplicit
 import open3d as o3d
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
-#手臂參數
+sys.path.append(os.path.dirname(__file__) + os.sep)  #os.sep 表示当前操作系统的路径分隔符，如在 Windows 上是 \，在 Unix 上是 /。
+#TODO手臂參數
 HOST = "192.168.255.10" 
 PORT = 11000
 SPEED = 400
-# Joint T + 52680 after install bin on flang
+#TODO Joint位置 T + 52680 after install bin on flang
 INIT_JOINT_CONFIGURE = [
     -126330,
     -18970,
@@ -53,21 +54,32 @@ Place_JOINT_CONFIGURE = [
     70995
 ]
 
+#TODO90度的旋轉矩陣 以及下爪深度
+offset = 70 #表示z軸向下爪幾公分單位是mm
+theta = np.radians(-90)
+T_gripper_Rz_90 = np.array([
+    [np.cos(theta), -np.sin(theta), 0, 0],
+    [np.sin(theta), np.cos(theta), 0, 0],
+    [0, 0, 1, offset],
+    [0, 0, 0, 1]
+])
 
-offset = 50 #表示z軸向下爪幾公分單位是mm
-
-
-
+#TODO校正參數
 CALIBRATION_PARAMS_SAVE_DIR = Path(__file__).parent / "calibration_params/2024_06_13" 
 
 
-sys.path.append(os.path.dirname(__file__) + os.sep)  #os.sep 表示当前操作系统的路径分隔符，如在 Windows 上是 \，在 Unix 上是 /。
-
-#表示相機座標到aruco的座標轉換
+#TODO表示相機座標到aruco的座標轉換
+ArUco_json_filename = "./scripts/quaternion.json"
+with open(ArUco_json_filename, 'r') as f:
+    loaded_data = json.load(f)
+tvec = loaded_data["tvec"]
+quaternion = loaded_data["quaternion"]
+print(tvec)
+print(quaternion)
 #T_cam_task_m = Transform(Rotation.from_quat([0.0091755 ,  0.9995211 ,  0.00176319 ,-0.02950025]), [ 0.16363484, -0.14483834 , 0.44753983])
-T_cam_task_m = Transform(Rotation.from_quat([0.01490109 , 0.96916517 ,-0.02853229 , 0.24430051]), [0.08855362, -0.14576081 , 0.48201059])
-round_id = 0
-
+T_cam_task_m = Transform(Rotation.from_quat(quaternion), tvec)
+#T_cam_task_m = Transform(Rotation.from_quat([0.01490109 , 0.96916517 ,-0.02853229 , 0.24430051]), [0.08855362, -0.14576081 , 0.48201059])#能正常運作的
+2
 
 class PandaGraspController(object):
     def __init__(self, args):
@@ -139,10 +151,10 @@ class PandaGraspController(object):
         pc = self.tsdf_server.high_res_tsdf.get_cloud()
 
         #TODO 顯示mesh 可以看到平滑表面
-        # mesh = self.tsdf_server.high_res_tsdf._volume.extract_triangle_mesh()
-        # print(mesh)
-        # mesh.compute_vertex_normals()
-        # o3d.visualization.draw_geometries([mesh])
+        mesh = self.tsdf_server.high_res_tsdf._volume.extract_triangle_mesh()
+        print(mesh)
+        mesh.compute_vertex_normals()
+        o3d.visualization.draw_geometries([mesh])
 
         print("-----------------")
         print(pc)  
@@ -214,12 +226,12 @@ class PandaGraspController(object):
             #Rz=Base_R_degree[2],
             speed=SPEED)
         #TODO: gripper
-        #success = gripper.close()
+        gripper.close()
         time.sleep(3)
         robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)  #初始位置
 
         robot_arm.move_to_joint_config(Place_JOINT_CONFIGURE, SPEED)  #擺放位置
-        success = gripper.on()
+        gripper.on()
         robot_arm.move_to_joint_config([-126330, -19968, 12272, -1538, -100260, 46100 + 52680], SPEED)
         
         ###
@@ -295,15 +307,7 @@ class PandaGraspController(object):
         ax.set_ylim((-1000, 1000))
         ax.set_zlim((-1000, 1000))
         #plt.show() 顯示座標圖
-        theta = np.radians(90)
-
-        #TODO90度的旋轉矩陣 以及下爪深度
-        T_gripper_Rz_90 = np.array([
-            [np.cos(theta), -np.sin(theta), 0, 0],
-            [np.sin(theta), np.cos(theta), 0, 0],
-            [0, 0, 1, offset],
-            [0, 0, 0, 1]
-        ])
+        
         
 
         T_Base_Grasp = T_Base_Gripper @ T_Gripper_Camera @ T_Camera_Task @ T_Task_Grasp @ T_gripper_Rz_90    #從右邊往左看,相機座標到夾爪座標再到base座標
@@ -380,9 +384,9 @@ def main(args):
     # ###
     ### TODO: times
     while(True): 
-        #robot_arm.move_to_joint_config([-126330, -19968, 12272, -1538, -100260, 46100 + 52680], SPEED)
-        #robot_arm.move_to_joint_config([-193854, -1136, 24242, -27707, -113300, 115753], SPEED) #可行但是太高
-        robot_arm.move_to_joint_config([-193854,-7245,4297,-24799,-103917,119435], SPEED)
+        #robot_arm.move_to_joint_config([-126330, -19968, 12272, -1538, -100260, 46100 + 52680], SPEED) 
+        #robot_arm.move_to_joint_config([-193854,-7245,4297,-24799,-103917,119435], SPEED)#可行
+        robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)
         panda_grasp.run(robot_arm, T_cam2gripper, gripper) 
         
     

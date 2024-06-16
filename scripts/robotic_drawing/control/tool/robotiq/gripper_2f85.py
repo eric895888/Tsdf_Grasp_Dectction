@@ -230,3 +230,10 @@ class Gripper2F85:
                 else:
                     crc = crc >> 1
         return crc
+if __name__ == "__main__":
+    logging.info("Init")
+    gripper = Gripper2F85()
+    logging.info("Connect")
+    success = gripper.connect()
+    logging.info("Reset")
+    success = gripper.reset()

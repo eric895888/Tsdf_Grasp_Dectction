@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import pyrealsense2 as rs
+import json
 
 font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
 
@@ -161,7 +162,7 @@ def Camstream_ArUco_detect():
             print("-----------------")
             print(r_mat)
             print("tvec:")
-            print(tvec)
+            print(tvec.squeeze())
             quaternion = rotation_matrix_to_quaternion(r_mat)
             print("四元數")
             print(quaternion)
@@ -170,6 +171,16 @@ def Camstream_ArUco_detect():
             ##### DRAW "NO IDS" #####
             cv2.putText(frame, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
 
+        data = {
+                "tvec": tvec.squeeze().tolist(),
+                "quaternion": quaternion.tolist(),
+            }
+            
+        # 指定要保存的文件名
+        ArUco_json_filename = "./scripts/quaternion.json"
+
+        with open(ArUco_json_filename, 'w') as f:
+            json.dump(data, f)
 
         # 显示结果框架
         cv2.imshow("frame",frame)
@@ -183,11 +194,11 @@ def Camstream_ArUco_detect():
             break
 
         if key == ord(' '):   # 按空格键保存
-    #        num = num + 1
-    #        filename = "frames_%s.jpg" % num  # 保存一张图像
             filename = str(time.time())[:10] + ".jpg"
             cv2.imwrite(filename, frame)
+    
         cv2.waitKey(0)
 
 if __name__ == "__main__":
     Camstream_ArUco_detect()
+    

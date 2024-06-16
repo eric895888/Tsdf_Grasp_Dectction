@@ -60,8 +60,8 @@ def main(args):
 
     # create ignite engines for training and validation
     trainer = create_trainer(net, optimizer, loss_fn, metrics, device)
-    evaluator = create_evaluator(net, loss_fn, metrics, device)
-
+    evaluator_val = create_evaluator(net, loss_fn, metrics, device)
+    evaluator_test = create_evaluator(net, loss_fn, metrics, device)
     # log training progress to the terminal and tensorboard
     ProgressBar(persist=True, ascii=True, dynamic_ncols=True, disable=args.silence).attach(trainer)
 
@@ -80,8 +80,8 @@ def main(args):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
-        evaluator.run(val_loader)
-        epoch, metrics = trainer.state.epoch, evaluator.state.metrics
+        evaluator_val.run(val_loader)
+        epoch, metrics = trainer.state.epoch, evaluator_val.state.metrics
         for k, v in metrics.items():
             val_writer.add_scalar(k, v, epoch)
             
@@ -92,12 +92,12 @@ def main(args):
     
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_test_results(engine):
-        evaluator.run(test_loader)
-        epoch, metrics = trainer.state.epoch, evaluator.state.metrics
+        evaluator_test.run(test_loader)
+        epoch, metrics = trainer.state.epoch, evaluator_test.state.metrics
         for k, v in metrics.items():
             test_writer.add_scalar(k, v, epoch)
             
-        msg = 'test'
+        msg = 'Test'
         for k, v in metrics.items():
             msg += f' {k}: {v:.4f}'
         print(msg)
@@ -117,14 +117,14 @@ def main(args):
         logdir,
         "best_giga",
         n_saved=1,
-        score_name="val_acc",
+        score_name="test_acc",
         score_function=default_score_fn,
         require_empty=True,
     )
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED(every=1), checkpoint_handler, {args.net: net}
     )
-    evaluator.add_event_handler(
+    evaluator_test.add_event_handler(
         Events.EPOCH_COMPLETED, best_checkpoint_handler, {args.net: net}
     )
 
@@ -163,7 +163,7 @@ def create_train_val_test_loaders(root, root_raw, batch_size, val_split, augment
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=batch_size, shuffle=False, drop_last=True, **kwargs
     )
-    return train_loader, val_loader,test_loader
+    return train_loader, val_loader, test_loader
 
 
 def prepare_batch(batch, device):
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     parser.add_argument("--logdir", type=Path, default="data/runs")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--savedir", type=str, default="")
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--val-split", type=float, default=0.1)
