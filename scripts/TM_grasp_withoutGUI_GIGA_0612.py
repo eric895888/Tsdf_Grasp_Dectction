@@ -31,7 +31,8 @@ from vgn.detection_implicit import VGNImplicit
 import open3d as o3d
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 sys.path.append(os.path.dirname(__file__) + os.sep)  #os.sep 表示当前操作系统的路径分隔符，如在 Windows 上是 \，在 Unix 上是 /。
-#TODO手臂參數
+
+#TODO手臂連線參數
 HOST = "192.168.255.10" 
 PORT = 11000
 SPEED = 400
@@ -79,7 +80,7 @@ print(quaternion)
 #T_cam_task_m = Transform(Rotation.from_quat([0.0091755 ,  0.9995211 ,  0.00176319 ,-0.02950025]), [ 0.16363484, -0.14483834 , 0.44753983])
 T_cam_task_m = Transform(Rotation.from_quat(quaternion), tvec)
 #T_cam_task_m = Transform(Rotation.from_quat([0.01490109 , 0.96916517 ,-0.02853229 , 0.24430051]), [0.08855362, -0.14576081 , 0.48201059])#能正常運作的
-2
+
 
 class PandaGraspController(object):
     def __init__(self, args):
@@ -98,8 +99,6 @@ class PandaGraspController(object):
     def run(self, robot_arm,T_cam2gripper, gripper):
         vis.clear()
         vis.draw_workspace(self.size)
-        ### TODO: test
-        #robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)
         logging.info("[Robot] Move to initial pose by joint configure")
         ###
         
@@ -124,14 +123,10 @@ class PandaGraspController(object):
         vis.draw_grasp(grasp, score, self.finger_depth)
         rospy.loginfo("Selected grasp")
         
-        
         label = self.execute_grasp(grasp, robot_arm=robot_arm, T_Gripper_Camera=T_cam2gripper, gripper=gripper)
         rospy.loginfo("Grasp execution")
         rospy.sleep(1)
-        ### TODO test
-        #robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)
         logging.info("[Robot] Move to initial pose by joint configure")
-        ###
 
     def acquire_tsdf(self): #移動去其他視角拍照
         self.tsdf_server.reset()
@@ -151,10 +146,9 @@ class PandaGraspController(object):
         pc = self.tsdf_server.high_res_tsdf.get_cloud()
 
         #TODO 顯示mesh 可以看到平滑表面
-        mesh = self.tsdf_server.high_res_tsdf._volume.extract_triangle_mesh()
-        print(mesh)
-        mesh.compute_vertex_normals()
-        o3d.visualization.draw_geometries([mesh])
+        # mesh = self.tsdf_server.high_res_tsdf._volume.extract_triangle_mesh()
+        # mesh.compute_vertex_normals()
+        # o3d.visualization.draw_geometries([mesh])
 
         print("-----------------")
         print(pc)  
@@ -185,11 +179,19 @@ class PandaGraspController(object):
         #T_base_grasp = self.T_base_task
         
         print("grasp tsdf位置",grasp)
-        Base_point_t,Base_R_degree=self.EstimateCoord(T_task_grasp, T_Gripper_Camera, robot_arm)
-        print("Base_point_t",Base_point_t)
-        print("Base_R_degree",Base_R_degree)
+        T_Base_Grasp=self.EstimateCoord(T_task_grasp, T_Gripper_Camera, robot_arm)
+  
 
         robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)
+        pregrasp_offset= -50 #mm
+        #移動到前方
+        T_Grasp_Pregrasp = np.array([ 
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, pregrasp_offset],
+            [0, 0, 0, 1]
+        ])
+        T_Base_Pregrasp = T_Base_Grasp @ T_Grasp_Pregrasp
         #T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])  #移動到前方
         #T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.05])   #夾起來後往後
 
@@ -203,38 +205,54 @@ class PandaGraspController(object):
 
         # t_task_grasp = T_task_grasp.translation
         # R_task_grasp = T_task_grasp.rotation
-        modifed_Rz_degree = Base_R_degree[2]
-        print("original",Base_R_degree)
 
-        # #TODO 限制z軸旋轉
-        # if modifed_Rz_degree<0:  #當手臂有多轉90度時使用
-        #     modifed_Rz_degree+=90
-        #     print("-90")
-        # elif modifed_Rz_degree>180:
-        #     modifed_Rz_degree-=90
-        #     print("+90")
-
-        # print("modifed_Rz_degree",modifed_Rz_degree)
-        ## TODO: test
+        # TODO: 夾取座標後退
+        Base_point_t = T_Base_Pregrasp[:3, 3] #3x1 T
+        Base_point_r = T_Base_Pregrasp[:3,:3] #3x3
+        Base_R_degree= Rotation.from_matrix(Base_point_r).as_euler('xyz',degrees=True)
         robot_arm.move_to_pose(
             Tx=Base_point_t[0],
             Ty=Base_point_t[1],
-            Tz = Base_point_t[2],
+            Tz=Base_point_t[2],
             Rx=Base_R_degree[0],
             Ry=Base_R_degree[1],
-            Rz=modifed_Rz_degree,
-            #Rz=Base_R_degree[2],
+            Rz=Base_R_degree[2],
+            speed=SPEED)
+        
+        ## TODO: 夾取座標
+        Base_point_t = T_Base_Grasp[:3, 3] #3x1 T
+        Base_point_r = T_Base_Grasp[:3,:3] #3x3
+        Base_R_degree= Rotation.from_matrix(Base_point_r).as_euler('xyz',degrees=True)
+        robot_arm.move_to_pose(
+            Tx=Base_point_t[0],
+            Ty=Base_point_t[1],
+            Tz=Base_point_t[2],
+            Rx=Base_R_degree[0],
+            Ry=Base_R_degree[1],
+            Rz=Base_R_degree[2],
             speed=SPEED)
         #TODO: gripper
         gripper.close()
         time.sleep(3)
-        robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)  #初始位置
 
-        robot_arm.move_to_joint_config(Place_JOINT_CONFIGURE, SPEED)  #擺放位置
-        gripper.on()
-        robot_arm.move_to_joint_config([-126330, -19968, 12272, -1538, -100260, 46100 + 52680], SPEED)
+        # TODO: 夾取座標後退
+        Base_point_t = T_Base_Pregrasp[:3, 3] #3x1 T
+        Base_point_r = T_Base_Pregrasp[:3,:3] #3x3
+        Base_R_degree= Rotation.from_matrix(Base_point_r).as_euler('xyz',degrees=True)
+        robot_arm.move_to_pose(
+            Tx=Base_point_t[0],
+            Ty=Base_point_t[1],
+            Tz=Base_point_t[2],
+            Rx=Base_R_degree[0],
+            Ry=Base_R_degree[1],
+            Rz=Base_R_degree[2],
+            speed=SPEED)
         
-        ###
+        
+        robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED)  #初始位置
+        robot_arm.move_to_joint_config(Place_JOINT_CONFIGURE, SPEED) #擺放位置
+        gripper.on()
+        robot_arm.move_to_joint_config(INIT_JOINT_CONFIGURE, SPEED) #初始位置
 
     def EstimateCoord(self,T_task_grasp, T_Gripper_Camera, robot_arm):  #計算座標
         tcp_pose = robot_arm.controller.get_robot_pose(tool_num=0) #讀取手臂本身座標
@@ -255,14 +273,6 @@ class PandaGraspController(object):
 
         print(f"TCP POSE mat: {T_Base_Gripper}")
 
-        # T_Camera_Task = np.array( #改成算出來的
-        #     [
-        #         [1, 0, 0, 0],
-        #         [0, 1, 0, 0],
-        #         [0, 0, 1, 0],
-        #         [0, 0, 0, 1]
-        #     ]
-        # )
         print("---------")
         print(T_cam_task_m.as_matrix())
         Task2Camera_r = T_cam_task_m.as_matrix()[:3,:3]
@@ -271,22 +281,12 @@ class PandaGraspController(object):
         print(Task2Camera_t*1000)
 
         T_Camera_Task=np.r_[np.c_[Task2Camera_r, Task2Camera_t*1000], [[0, 0, 0, 1]]]
-        # grasppoint = np.array([T_task_grasp.translation[0]*1000,T_task_grasp.translation[1]*1000, T_task_grasp.translation[2]*1000, 1]).T
-        # grasppoint = np.array([0,0,0,1]).T
-
         
         T_Task_Grasp = np.eye(4)
         T_task_grasp_t = T_task_grasp.as_matrix()[:3,3]
         T_task_grasp_r = T_task_grasp.as_matrix()[:3,:3]
         T_task_grasp_Rx_deg, T_task_grasp_Ry_deg, T_task_grasp_Rz_deg = Rotation.from_matrix(T_task_grasp_r).as_euler('xyz', degrees=True)
         print("原始角度",T_task_grasp_Rx_deg, T_task_grasp_Ry_deg, T_task_grasp_Rz_deg )
-        # while T_task_grasp_Rz_deg < 0:
-        #     T_task_grasp_Rz_deg += 180
-        #     print("-90")
-        # while T_task_grasp_Rz_deg > 180:
-        #     T_task_grasp_Rz_deg -= 180
-        #     print("+90")
-        # T_task_grasp_r = Rotation.from_euler('xyz', [T_task_grasp_Rx_deg, T_task_grasp_Ry_deg, T_task_grasp_Rz_deg], degrees=True).as_matrix()
         
         T_Task_Grasp[:3,:3] = T_task_grasp_r
         T_Task_Grasp[:3,3] = T_task_grasp_t * 1000
@@ -294,14 +294,12 @@ class PandaGraspController(object):
         # T_Task_Grasp=np.r_[np.c_[T_task_grasp_r, T_task_grasp_t], [[0, 0, 0, 1]]]
         print("grasp2task",T_Task_Grasp)
 
+        #TODO顯示各個座標系
         tm = TransformManager()
         tm.add_transform("grasp", "task", T_Task_Grasp)
         tm.add_transform("gripper", "robot", T_Base_Gripper)
         tm.add_transform("camera", "gripper", T_Gripper_Camera)
         tm.add_transform("task", "camera", T_Camera_Task)
-
-        #ee2object = tm.get_transform("end-effector", "object")
-
         ax = tm.plot_frames_in("task", s=100)
         ax.set_xlim((-1000, 1000))
         ax.set_ylim((-1000, 1000))
@@ -309,17 +307,13 @@ class PandaGraspController(object):
         #plt.show() 顯示座標圖
         
         
-
-        T_Base_Grasp = T_Base_Gripper @ T_Gripper_Camera @ T_Camera_Task @ T_Task_Grasp @ T_gripper_Rz_90    #從右邊往左看,相機座標到夾爪座標再到base座標
+        #TODO base座標計算從右邊往左看,相機座標到夾爪座標再到base座標
+        T_Base_Grasp = T_Base_Gripper @ T_Gripper_Camera @ T_Camera_Task @ T_Task_Grasp @ T_gripper_Rz_90    
         print("T_Gripper_Camera", T_Gripper_Camera)
         print("T_Base_Gripper",T_Base_Gripper)
         print("T_Camera_Task",T_Camera_Task)
-        Base_point_t = T_Base_Grasp[:3, 3] #3x1 T
-        Base_point_r = T_Base_Grasp[:3,:3] #3x3
-        Base_R_degree= Rotation.from_matrix(Base_point_r).as_euler('xyz',degrees=True)
         
-
-        return Base_point_t,Base_R_degree
+        return T_Base_Grasp
 
 
 class TSDFServer(object):
@@ -359,10 +353,11 @@ def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
 
-    ### TODO: test
+    #TODO 校正參數
     with open(str(CALIBRATION_PARAMS_SAVE_DIR / 'calibration_params.json')) as f:
         calibration_params = json.load(f)
         T_cam2gripper = np.array(calibration_params["T_cam2gripper"])
+
     #TODO夾爪控制 
     #目前註解掉gripper="" 
     logging.info("Init")
@@ -398,12 +393,20 @@ def main(args):
     logging.info("[Robot] Power off")
     ### 
     
-
-
+#TODO 球形座標目前沒用到
+def camera_on_sphere(origin, radius, theta, phi):  #球形座標
+    eye = np.r_[
+        radius * sin(theta) * cos(phi),
+        radius * sin(theta) * sin(phi),
+        radius * cos(theta),
+    ]
+    target = np.array([0.0, 0.0, 0.0])
+    up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
+    return Transform.look_at(eye, target, up) * origin.inverse()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=Path, default="/home/robotic/Grasp_detection_GIGA/scripts/data/models/Block_giga_epoch10.pt")
+    parser.add_argument("--model", type=Path, default="/home/robotic/Grasp_detection_GIGA/scripts/data/models/TT_cube_giga_epoch20.pt")
     args = parser.parse_args()
     main(args)
